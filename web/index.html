@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>여행 웹사이트</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 font-sans">
+  <header class="bg-blue-600 text-white p-4 text-center text-2xl font-bold">
+    나만의 여행 사이트
+  </header>
+
+  <main class="p-6 max-w-6xl mx-auto">
+    <!-- 여행 일정 입력 -->
+    <section class="mb-6">
+      <h2 class="text-xl font-semibold mb-2">여행 일정 추가</h2>
+      <div class="flex flex-col gap-2 md:flex-row">
+        <input id="planInput" type="text" placeholder="예: 부산 여행" class="flex-1 p-2 border rounded">
+        <input id="dateInput" type="date" class="p-2 border rounded">
+        <button onclick="addPlan()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">추가</button>
+      </div>
+    </section>
+
+    <!-- 검색 -->
+    <section class="mb-6">
+      <h2 class="text-xl font-semibold mb-2">일정 검색</h2>
+      <input id="searchInput" type="text" placeholder="검색어 입력..." class="w-full p-2 border rounded" oninput="renderPlans()">
+    </section>
+
+    <!-- 일정 목록 -->
+    <section class="mb-6">
+      <h2 class="text-xl font-semibold mb-2">나의 여행 일정</h2>
+      <ul id="planList" class="space-y-2"></ul>
+    </section>
+
+    <!-- 추천 여행 코스 -->
+    <section class="mb-6">
+      <h2 class="text-xl font-semibold mb-2">추천 여행 코스</h2>
+      <ul id="recommendList" class="space-y-2"></ul>
+    </section>
+
+    <!-- 추천 여행지 -->
+    <section>
+      <h2 class="text-xl font-semibold mb-4">추천 여행지</h2>
+
+      <h3 class="text-lg font-bold mt-4 mb-2">🌏 아시아</h3>
+      <div id="asia" class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6"></div>
+
+      <h3 class="text-lg font-bold mt-4 mb-2">🌍 유럽</h3>
+      <div id="europe" class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6"></div>
+
+      <h3 class="text-lg font-bold mt-4 mb-2">🌎 아메리카</h3>
+      <div id="america" class="grid grid-cols-2 md:grid-cols-5 gap-4"></div>
+    </section>
+  </main>
+
+  <script>
+    const planInput = document.getElementById("planInput");
+    const dateInput = document.getElementById("dateInput");
+    const searchInput = document.getElementById("searchInput");
+    const planList = document.getElementById("planList");
+    const recommendList = document.getElementById("recommendList");
+
+    let plans = JSON.parse(localStorage.getItem("plans")) || [];
+
+    function savePlans() {
+      localStorage.setItem("plans", JSON.stringify(plans));
+    }
+
+    function renderPlans() {
+      const searchTerm = searchInput.value.toLowerCase();
+      planList.innerHTML = "";
+      plans
+        .filter(plan => plan.text.toLowerCase().includes(searchTerm) || plan.date.includes(searchTerm))
+        .forEach((plan, index) => {
+          const li = document.createElement("li");
+          li.className = "flex justify-between items-center bg-white p-3 rounded shadow";
+          li.innerHTML = `
+            <span>${plan.text} (${plan.date})</span>
+            <button onclick="deletePlan(${index})" class="text-red-500 hover:underline">삭제</button>
+          `;
+          planList.appendChild(li);
+        });
+    }
+
+    function addPlan() {
+      const textValue = planInput.value.trim();
+      const dateValue = dateInput.value;
+      if (textValue && dateValue) {
+        plans.push({ text: textValue, date: dateValue });
+        savePlans();
+        renderPlans();
+        generateRecommendedCourse();
+        planInput.value = "";
+        dateInput.value = "";
+      }
+    }
+
+    function deletePlan(index) {
+      plans.splice(index, 1);
+      savePlans();
+      renderPlans();
+      generateRecommendedCourse();
+    }
+
+    // 추천 코스 생성
+    function generateRecommendedCourse() {
+      recommendList.innerHTML = "";
+      if (plans.length === 0) {
+        recommendList.innerHTML = "<li class='bg-gray-200 p-2 rounded'>일정을 먼저 추가해주세요.</li>";
+        return;
+      }
+
+      const sortedPlans = [...plans].sort((a, b) => new Date(a.date) - new Date(b.date));
+      const courses = [];
+      let dayCourse = [];
+      let currentDate = sortedPlans[0].date;
+
+      sortedPlans.forEach(plan => {
+        if (plan.date !== currentDate) {
+          courses.push({ date: currentDate, plans: dayCourse });
+          dayCourse = [];
+          currentDate = plan.date;
+        }
+        dayCourse.push(plan.text);
+      });
+      courses.push({ date: currentDate, plans: dayCourse });
+
+      courses.forEach((course, index) => {
+        const li = document.createElement("li");
+        li.className = "bg-white p-3 rounded shadow";
+        li.innerHTML = `<strong>Day ${index + 1} (${course.date})</strong>: ${course.plans.join(" → ")}`;
+        recommendList.appendChild(li);
+      });
+    }
+
+    // 추천 여행지 데이터
+    const asia = [
+      { name: "도쿄", img: "https://upload.wikimedia.org/wikipedia/commons/1/12/Tokyo_Tower_and_around_Skyscrapers.jpg" },
+      { name: "서울", img: "https://upload.wikimedia.org/wikipedia/commons/5/5f/Gyeongbokgung_Palace_Seoul.jpg" },
+      { name: "홍콩", img: "https://upload.wikimedia.org/wikipedia/commons/2/2a/Hong_Kong_Skyline_from_Victoria_Peak.jpg" },
+      { name: "방콕", img: "https://upload.wikimedia.org/wikipedia/commons/a/a0/Bangkok_skyline.jpg" },
+      { name: "싱가포르", img: "https://upload.wikimedia.org/wikipedia/commons/3/3f/Marina_Bay_Sands_Singapore.jpg" },
+      { name: "쿠알라룸푸르", img: "https://upload.wikimedia.org/wikipedia/commons/9/9f/Kuala_Lumpur_Skyline.jpg" },
+      { name: "베이징", img: "https://upload.wikimedia.org/wikipedia/commons/a/af/Forbidden_City_Beijing_Shenwumen.jpg" },
+      { name: "상하이", img: "https://upload.wikimedia.org/wikipedia/commons/0/0e/Shanghai_Pudong_skyline.jpg" },
+      { name: "델리", img: "https://upload.wikimedia.org/wikipedia/commons/6/6b/India_Gate_in_New_Delhi_03-2016_img3.jpg" },
+      { name: "하노이", img: "https://upload.wikimedia.org/wikipedia/commons/0/02/Hoan_Kiem_Lake_Hanoi.jpg" }
+    ];
+
+    const europe = [
+      { name: "런던", img: "https://upload.wikimedia.org/wikipedia/commons/c/cd/London_Montage_L.jpg" },
+      { name: "파리", img: "https://upload.wikimedia.org/wikipedia/commons/a/a8/Tour_Eiffel_Wikimedia_Commons.jpg" },
+      { name: "로마", img: "https://upload.wikimedia.org/wikipedia/commons/5/5a/Colosseum_in_Rome%2C_Italy_-_April_2007.jpg" },
+      { name: "마드리드", img: "https://upload.wikimedia.org/wikipedia/commons/9/9a/Plaza_Mayor_Madrid_Spain.jpg" },
+      { name: "베를린", img: "https://upload.wikimedia.org/wikipedia/commons/4/41/Berlin_Skyline_Fernsehturm_2017.jpg" },
+      { name: "암스테르담", img: "https://upload.wikimedia.org/wikipedia/commons/6/6c/Amsterdam_Canals.jpg" },
+      { name: "프라하", img: "https://upload.wikimedia.org/wikipedia/commons/6/6b/Prague_Castle_and_Charles_Bridge.jpg" },
+      { name: "비엔나", img: "https://upload.wikimedia.org/wikipedia/commons/5/5c/Vienna_Skyline.jpg" },
+      { name: "바르셀로나", img: "https://upload.wikimedia.org/wikipedia/commons/4/4d/Sagrada_Familia_01.jpg" },
+      { name: "아테네", img: "https://upload.wikimedia.org/wikipedia/commons/d/d9/Acropolis_of_Athens_2016.jpg" }
+    ];
+
+    const america = [
+      { name: "뉴욕", img: "https://upload.wikimedia.org/wikipedia/commons/a/ab/Lower_Manhattan_skyline_-_June_2017.jpg" },
+      { name: "로스앤젤레스", img: "https://upload.wikimedia.org/wikipedia/commons/6/6b/Los_Angeles_Skyline_at_Dusk.jpg" },
+      { name: "마이애미", img: "https://upload.wikimedia.org/wikipedia/commons/f/f1/Miami_Beach_Skyline.jpg" },
+      { name: "시카고", img: "https://upload.wikimedia.org/wikipedia/commons/0/0c/Chicago_skyline%2C_viewed_from_John_Hancock_Center.jpg" },
+      { name: "리우데자네이루", img: "https://upload.wikimedia.org/wikipedia/commons/6/6f/Rio_de_Janeiro_-_Rafael_Frenkiel.jpg" },
+      { name: "부에노스아이레스", img: "https://upload.wikimedia.org/wikipedia/commons/3/3b/Buenos_Aires_City_Center.jpg" },
+      { name: "멕시코시티", img: "https://upload.wikimedia.org/wikipedia/commons/9/9e/Mexico_City_Palacio_de_Bellas_Artes.jpg" },
+      { name: "토론토", img: "https://upload.wikimedia.org/wikipedia/commons/2/21/Toronto_skyline_from_Harbourfront.jpg" },
+      { name: "밴쿠버", img: "https://upload.wikimedia.org/wikipedia/commons/e/e6/Vancouver_skyline_from_Stanley_Park.jpg" },
+      { name: "리마", img: "https://upload.wikimedia.org/wikipedia/commons/3/3d/Lima_skyline.jpg" }
+    ];
+
+    function renderDestinations(list, containerId) {
+      const container = document.getElementById(containerId);
+      container.innerHTML = "";
+      list.forEach(dest => {
+        const card = document.createElement("div");
+        card.className = "bg-white rounded shadow hover:shadow-lg cursor-pointer overflow-hidden";
+        card.innerHTML = `
+          <img src="${dest.img}" alt="${dest.name}" class="w-full h-32 object-cover">
+          <div class="p-2 text-center font-semibold">${dest.name}</div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    renderPlans();
+    generateRecommendedCourse();
+    renderDestinations(asia, "asia");
+    renderDestinations(europe, "europe");
+    renderDestinations(america, "america");
+  </script>
+</body>
+</html>
