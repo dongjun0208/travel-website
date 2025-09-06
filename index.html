@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>여행 웹사이트</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 font-sans">
+  <header class="bg-blue-600 text-white p-4 text-center text-2xl font-bold">
+    나만의 여행 사이트
+  </header>
+
+  <main class="p-6 max-w-6xl mx-auto">
+    <!-- 여행 일정 입력 -->
+    <section class="mb-6">
+      <h2 class="text-xl font-semibold mb-2">여행 일정 추가</h2>
+      <div class="flex flex-col gap-2 md:flex-row">
+        <input id="planInput" type="text" placeholder="예: 부산 여행" class="flex-1 p-2 border rounded">
+        <input id="dateInput" type="date" class="p-2 border rounded">
+        <button onclick="addPlan()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">추가</button>
+      </div>
+    </section>
+
+    <!-- 검색 -->
+    <section class="mb-6">
+      <h2 class="text-xl font-semibold mb-2">일정 검색</h2>
+      <input id="searchInput" type="text" placeholder="검색어 입력..." class="w-full p-2 border rounded" oninput="renderPlans()">
+    </section>
+
+    <!-- 일정 목록 -->
+    <section class="mb-6">
+      <h2 class="text-xl font-semibold mb-2">나의 여행 일정</h2>
+      <ul id="planList" class="space-y-2"></ul>
+    </section>
+
+    <!-- 추천 여행 코스 -->
+    <section class="mb-6">
+      <h2 class="text-xl font-semibold mb-2">추천 여행 코스</h2>
+      <ul id="recommendList" class="space-y-2"></ul>
+    </section>
+
+    <!-- 즐겨찾기 -->
+    <section class="mb-6">
+      <h2 class="text-xl font-semibold mb-2">⭐ 즐겨찾기 여행지</h2>
+      <ul id="favorites" class="space-y-2"></ul>
+    </section>
+
+    <!-- 실시간 날씨 -->
+    <section class="mb-6">
+      <h2 class="text-xl font-semibold mb-2">🌤 실시간 날씨 확인</h2>
+      <div class="flex flex-col gap-2 md:flex-row">
+        <input id="cityInput" type="text" placeholder="도시 이름 (영어로 입력: Seoul, Tokyo...)" class="flex-1 p-2 border rounded">
+        <button onclick="getWeather()" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">확인</button>
+      </div>
+      <div id="weatherResult" class="mt-3 p-3 bg-white rounded shadow"></div>
+    </section>
+
+    <!-- 환율 변환기 -->
+    <section class="mb-6">
+      <h2 class="text-xl font-semibold mb-2">💱 환율 변환기 (KRW → 외국 통화)</h2>
+      <div class="flex flex-col gap-2 md:flex-row">
+        <input id="krwInput" type="number" placeholder="금액 (₩)" class="flex-1 p-2 border rounded">
+        <select id="currencySelect" class="p-2 border rounded">
+          <option value="USD">달러 (USD)</option>
+          <option value="EUR">유로 (EUR)</option>
+          <option value="GBP">파운드 (GBP)</option>
+          <option value="JPY">엔화 (JPY)</option>
+        </select>
+        <button onclick="convertCurrency()" class="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600">변환</button>
+      </div>
+      <div id="currencyResult" class="mt-3 p-3 bg-white rounded shadow"></div>
+    </section>
+
+    <!-- 추천 여행지 -->
+    <section>
+      <h2 class="text-xl font-semibold mb-4">추천 여행지</h2>
+
+      <h3 class="text-lg font-bold mt-4 mb-2">🌏 아시아</h3>
+      <div id="asia" class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6"></div>
+
+      <h3 class="text-lg font-bold mt-4 mb-2">🌍 유럽</h3>
+      <div id="europe" class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6"></div>
+
+      <h3 class="text-lg font-bold mt-4 mb-2">🌎 아메리카</h3>
+      <div id="america" class="grid grid-cols-2 md:grid-cols-5 gap-4"></div>
+    </section>
+  </main>
+
+  <script>
+    const planInput = document.getElementById("planInput");
+    const dateInput = document.getElementById("dateInput");
+    const searchInput = document.getElementById("searchInput");
+    const planList = document.getElementById("planList");
+    const recommendList = document.getElementById("recommendList");
+    const favoritesList = document.getElementById("favorites");
+
+    let plans = JSON.parse(localStorage.getItem("plans")) || [];
+    let favorites = JSON.parse(localStorage.getItem("favorites")) || [];
+
+    function savePlans() { localStorage.setItem("plans", JSON.stringify(plans)); }
+    function saveFavorites() { localStorage.setItem("favorites", JSON.stringify(favorites)); }
+
+    function renderPlans() {
+      const searchTerm = searchInput.value.toLowerCase();
+      planList.innerHTML = "";
+      plans
+        .filter(plan => plan.text.toLowerCase().includes(searchTerm) || plan.date.includes(searchTerm))
+        .forEach((plan, index) => {
+          const li = document.createElement("li");
+          li.className = "flex justify-between items-center bg-white p-3 rounded shadow";
+          li.innerHTML = `<span>${plan.text} (${plan.date})</span>
+            <button onclick="deletePlan(${index})" class="text-red-500 hover:underline">삭제</button>`;
+          planList.appendChild(li);
+        });
+    }
+
+    function addPlan() {
+      const textValue = planInput.value.trim();
+      const dateValue = dateInput.value;
+      if (textValue && dateValue) {
+        plans.push({ text: textValue, date: dateValue });
+        savePlans();
+        renderPlans();
+        generateRecommendedCourse();
+        planInput.value = "";
+        dateInput.value = "";
+      }
+    }
+
+    function deletePlan(index) {
+      plans.splice(index, 1);
+      savePlans();
+      renderPlans();
+      generateRecommendedCourse();
+    }
+
+    function generateRecommendedCourse() {
+      recommendList.innerHTML = "";
+      if (plans.length === 0) {
+        recommendList.innerHTML = "<li class='bg-gray-200 p-2 rounded'>일정을 먼저 추가해주세요.</li>";
+        return;
+      }
+      const sortedPlans = [...plans].sort((a, b) => new Date(a.date) - new Date(b.date));
+      const courses = [];
+      let dayCourse = [];
+      let currentDate = sortedPlans[0].date;
+      sortedPlans.forEach(plan => {
+        if (plan.date !== currentDate) {
+          courses.push({ date: currentDate, plans: dayCourse });
+          dayCourse = [];
+          currentDate = plan.date;
+        }
+        dayCourse.push(plan.text);
+      });
+      courses.push({ date: currentDate, plans: dayCourse });
+      courses.forEach((course, index) => {
+        const li = document.createElement("li");
+        li.className = "bg-white p-3 rounded shadow";
+        li.innerHTML = `<strong>Day ${index + 1} (${course.date})</strong>: ${course.plans.join(" → ")}`;
+        recommendList.appendChild(li);
+      });
+    }
+
+    function renderFavorites() {
+      favoritesList.innerHTML = "";
+      if (favorites.length === 0) {
+        favoritesList.innerHTML = "<li class='bg-gray-200 p-2 rounded'>즐겨찾기한 여행지가 없습니다.</li>";
+        return;
+      }
+      favorites.forEach((fav, index) => {
+        const li = document.createElement("li");
+        li.className = "flex justify-between items-center bg-white p-3 rounded shadow";
+        li.innerHTML = `<span>${fav}</span>
+          <button onclick="deleteFavorite(${index})" class="text-red-500 hover:underline">삭제</button>`;
+        favoritesList.appendChild(li);
+      });
+    }
+
+    function addFavorite(city) {
+      if (!favorites.includes(city)) {
+        favorites.push(city);
+        saveFavorites();
+        renderFavorites();
+      }
+    }
+
+    function deleteFavorite(index) {
+      favorites.splice(index, 1);
+      saveFavorites();
+      renderFavorites();
+    }
+
+    // 날씨 API
+    async function getWeather() {
+      const city = document.getElementById("cityInput").value.trim();
+      const result = document.getElementById("weatherResult");
+      if (!city) return;
+      const apiKey = "YOUR_API_KEY"; // OpenWeatherMap API 키 필요
+      const url = `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${apiKey}&units=metric&lang=kr`;
+      try {
+        const res = await fetch(url);
+        const data = await res.json();
+        if (data.cod === 200) {
+          result.innerHTML = `<strong>${data.name}</strong>: ${data.weather[0].description}, 🌡 ${data.main.temp}°C`;
+        } else {
+          result.innerHTML = "도시를 찾을 수 없습니다.";
+        }
+      } catch {
+        result.innerHTML = "날씨 정보를 불러오는 중 오류 발생";
+      }
+    }
+
+    // 환율 변환 (KRW → 외국 통화)
+    const exchangeRates = {
+      USD: 0.00073, // 1 KRW = 0.00073 USD
+      EUR: 0.00067, // 1 KRW = 0.00067 EUR
+      GBP: 0.00057, // 1 KRW = 0.00057 GBP
+      JPY: 0.11     // 1 KRW = 0.11 JPY
+    };
+
+    function convertCurrency() {
+      const krw = parseFloat(document.getElementById("krwInput").value);
+      const currency = document.getElementById("currencySelect").value;
+      const resultEl = document.getElementById("currencyResult");
+
+      if (isNaN(krw) || krw <= 0) {
+        resultEl.textContent = "금액을 올바르게 입력해주세요.";
+        return;
+      }
+
+      const rate = exchangeRates[currency];
+      const converted = (krw * rate).toFixed(2);
+
+      resultEl.textContent = `${krw.toLocaleString()}원 = ${converted} ${currency}`;
+    }
+
+    // 추천 여행지
+    const asia = [
+      { name: "도쿄", img: "https://upload.wikimedia.org/wikipedia/commons/1/12/Tokyo_Tower_and_around_Skyscrapers.jpg" },
+      { name: "서울", img: "https://upload.wikimedia.org/wikipedia/commons/5/5f/Gyeongbokgung_Palace_Seoul.jpg" },
+      { name: "홍콩", img: "https://upload.wikimedia.org/wikipedia/commons/2/2a/Hong_Kong_Skyline_from_Victoria_Peak.jpg" },
+      { name: "방콕", img: "https://upload.wikimedia.org/wikipedia/commons/a/a0/Bangkok_skyline.jpg" },
+      { name: "싱가포르", img: "https://upload.wikimedia.org/wikipedia/commons/3/3f/Marina_Bay_Sands_Singapore.jpg" },
+    ];
+    const europe = [
+      { name: "런던", img: "https://upload.wikimedia.org/wikipedia/commons/c/cd/London_Montage_L.jpg" },
+      { name: "파리", img: "https://upload.wikimedia.org/wikipedia/commons/a/a8/Tour_Eiffel_Wikimedia_Commons.jpg" },
+      { name: "로마", img: "https://upload.wikimedia.org/wikipedia/commons/5/5a/Colosseum_in_Rome%2C_Italy_-_April_2007.jpg" },
+      { name: "마드리드", img: "https://upload.wikimedia.org/wikipedia/commons/9/9a/Plaza_Mayor_Madrid_Spain.jpg" },
+      { name: "베를린", img: "https://upload.wikimedia.org/wikipedia/commons/4/41/Berlin_Skyline_Fernsehturm_2017.jpg" },
+    ];
+    const america = [
+      { name: "뉴욕", img: "https://upload.wikimedia.org/wikipedia/commons/a/ab/Lower_Manhattan_skyline_-_June_2017.jpg" },
+      { name: "로스앤젤레스", img: "https://upload.wikimedia.org/wikipedia/commons/6/6b/Los_Angeles_Skyline_at_Dusk.jpg" },
+      { name: "마이애미", img: "https://upload.wikimedia.org/wikipedia/commons/f/f1/Miami_Beach_Skyline.jpg" },
+      { name: "리우데자네이루", img: "https://upload.wikimedia.org/wikipedia/commons/6/6f/Rio_de_Janeiro_-_Rafael_Frenkiel.jpg" },
+      { name: "부에노스아이레스", img: "https://upload.wikimedia.org/wikipedia/commons/3/3b/Buenos_Aires_City_Center.jpg" },
+    ];
+
+    function renderDestinations(list, containerId) {
+      const container = document.getElementById(containerId);
+      container.innerHTML = "";
+      list.forEach(dest => {
+        const card = document.createElement("div");
+        card.className = "bg-white rounded shadow hover:shadow-lg cursor-pointer overflow-hidden";
+        card.innerHTML = `
+          <img src="${dest.img}" alt="${dest.name}" class="w-full h-32 object-cover">
+          <div class="p-2 text-center font-semibold">${dest.name}</div>
+          <button onclick="addFavorite('${dest.name}')" class="w-full bg-yellow-400 hover:bg-yellow-500 text-white py-1">⭐ 즐겨찾기</button>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    renderPlans();
+    generateRecommendedCourse();
+    renderFavorites();
+    renderDestinations(asia, "asia");
+    renderDestinations(europe, "europe");
+    renderDestinations(america, "america");
+  </script>
+</body>
+</html>
