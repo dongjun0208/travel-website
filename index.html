@@ -23,7 +23,7 @@
     </section>
 
     <!-- 검색 -->
-    <section class="mb-6">
+     <section class="mb-6">
       <h2 class="text-xl font-semibold mb-2">일정 검색</h2>
       <input id="searchInput" type="text" placeholder="검색어 입력..." class="w-full p-2 border rounded" oninput="renderPlans()">
     </section>
@@ -46,15 +46,7 @@
       <ul id="favorites" class="space-y-2"></ul>
     </section>
 
-    <!-- 실시간 날씨 -->
-    <section class="mb-6">
-      <h2 class="text-xl font-semibold mb-2">🌤 실시간 날씨 확인</h2>
-      <div class="flex flex-col gap-2 md:flex-row">
-        <input id="cityInput" type="text" placeholder="도시 이름 (영어로 입력: Seoul, Tokyo...)" class="flex-1 p-2 border rounded">
-        <button onclick="getWeather()" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">확인</button>
-      </div>
-      <div id="weatherResult" class="mt-3 p-3 bg-white rounded shadow"></div>
-    </section>
+
 
     <!-- 환율 변환기 -->
     <section class="mb-6">
@@ -197,20 +189,6 @@
     setInterval(renderCards, 1000);
     renderCards();
 
-    // 날씨 (더미 데이터)
-    function getWeather() {
-      const city = document.getElementById('cityInput').value;
-      if (!city) return;
-      // 샘플 데이터
-      const sampleWeather = {
-        temp: "25°C",
-        desc: "맑음",
-        humidity: "60%"
-      };
-      document.getElementById('weatherResult').innerHTML =
-        `${city}의 날씨<br>🌡 온도: ${sampleWeather.temp}<br>☁️ 상태: ${sampleWeather.desc}<br>💧 습도: ${sampleWeather.humidity}`;
-    }
-
     // 환율 변환 (더미 데이터)
     function convertCurrency() {
       const krw = parseFloat(document.getElementById('krwInput').value);
@@ -227,4 +205,5 @@
   </script>
 </body>
 </html>
+
 
